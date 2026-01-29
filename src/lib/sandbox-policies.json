@@ -1,0 +1,17 @@
+{
+  "policies": {
+    "detectInfiniteLoops": true,
+    "detectForkBombs": true,
+    "detectHeapAbuse": true,
+    "adaptiveLimits": {
+      "enabled": true,
+      "cleanBehaviorBoost": 1.2,
+      "inefficientBehaviorPenalty": 0.8
+    }
+  },
+  "behavioralKeywords": {
+    "infiniteLoop": ["while(true)", "for(;;)", "while (true)"],
+    "forkBomb": ["fork()"],
+    "heapAbuse": ["malloc"]
+  }
+}
