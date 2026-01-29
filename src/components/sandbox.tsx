@@ -30,6 +30,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { jsPDF } from 'jspdf';
 
 const DEFAULT_CODE = `function greet(name) {
   console.log(\`Hello, \${name}!\`);
@@ -120,26 +121,60 @@ export function Sandbox() {
   };
 
   const handleDownload = (format: 'PDF' | 'Word') => {
-    // In a real application, you would use a library to generate a PDF or Word document.
-    // For this simulation, we are downloading the output log as a text file with the appropriate extension.
     const fileContent = output.join('\n');
-    const blob = new Blob([fileContent], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `sandbox-output.${format === 'PDF' ? 'pdf' : 'docx'}`;
-    
-    document.body.appendChild(link);
-    link.click();
-    
-    // Clean up
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
 
-    toast({
-      title: 'Download Started',
-      description: `Your simulated ${format} file is downloading.`,
-    });
+    if (format === 'PDF') {
+      try {
+        const doc = new jsPDF();
+        doc.setFont('courier');
+        doc.setFontSize(10);
+        const lines = doc.splitTextToSize(fileContent, 180);
+        doc.text(lines, 10, 10);
+        doc.save('sandbox-output.pdf');
+
+        toast({
+          title: 'Download Started',
+          description: 'Your PDF file is downloading.',
+        });
+      } catch (e) {
+        console.error('Failed to generate PDF:', e);
+        toast({
+          variant: 'destructive',
+          title: 'PDF Generation Failed',
+          description: 'There was an error creating the PDF file.',
+        });
+      }
+    } else {
+      // For Word, we'll download a file with a .docx extension.
+      // Word processors can often open plain text, but this is a simulation.
+      try {
+        const blob = new Blob([fileContent], {
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'sandbox-output.docx';
+
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        toast({
+          title: 'Download Started',
+          description: 'Your simulated Word file is downloading.',
+        });
+      } catch (e) {
+        console.error('Failed to prepare download:', e);
+        toast({
+          variant: 'destructive',
+          title: 'Download Failed',
+          description: 'There was an error preparing the file for download.',
+        });
+      }
+    }
   };
 
   // Cleanup on unmount
