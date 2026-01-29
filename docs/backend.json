@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account for the Safe Sandbox application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    },
+    "Session": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Session",
+      "type": "object",
+      "description": "Represents a user session for the Safe Sandbox application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Session entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Session)"
+        },
+        "loginTime": {
+          "type": "string",
+          "description": "Timestamp of when the user logged in.",
+          "format": "date-time"
+        },
+        "logoutTime": {
+          "type": "string",
+          "description": "Timestamp of when the user logged out. Null if the session is still active.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "loginTime"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. User ID is used for path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/sessions/{sessionId}",
+        "definition": {
+          "entityName": "Session",
+          "schema": {
+            "$ref": "#/backend/entities/Session"
+          },
+          "description": "Stores session information for each user. Path-based ownership is used for authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "sessionId",
+              "description": "The unique identifier for the session."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the Safe Sandbox application. User data and sessions are stored in separate collections to optimize security and query performance.\n\nAuthorization Independence:\nUser sessions are stored under the `/users/{userId}/sessions/{sessionId}` path to ensure clear ownership and eliminate the need for complex authorization logic involving parent documents. No denormalization is required as session documents inherit authorization via path.\n\nQAPs (Rules are not Filters):\nThe structure enables secure list operations by using hierarchical paths for user-owned data. For example, listing sessions is restricted to the specific user's sessions. This approach avoids the need to filter data based on user ID within the security rules, adhering to the principle that rules should not be used as filters.\n\nThe authentication system is configured to support password and anonymous authentication."
+  }
+}

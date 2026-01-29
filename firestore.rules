@@ -1,0 +1,138 @@
+/**
+ * This ruleset enforces a strict user-ownership model for the Safe Sandbox application.
+ * All user-related data, including profiles and session logs, is private and can only be
+ * accessed by the authenticated user who owns it.
+ *
+ * Core Philosophy:
+ * The security model is built on the principle of least privilege. Users are isolated
+ * within their own data trees, and there is no concept of public or shared data.
+ * This prevents any user from accessing, or even knowing about, the data of another user.
+ *
+ * Data Structure:
+ * All data is organized hierarchically under the `/users/{userId}` path. A user's
+ * profile is stored at the root of their tree, and related data like sessions are
+ * stored in subcollections (e.g., `/users/{userId}/sessions/{sessionId}`). This
+ * structure makes ownership clear and security rules simple and performant.
+ *
+ * Key Security Decisions:
+ * - User Enumeration is Disabled: Listing the top-level `/users` collection is
+ *   explicitly forbidden to protect user privacy and prevent data scraping.
+ * - Path-Based Authorization: Ownership is determined by the `{userId}` wildcard in
+ *   the document path. This is compared against the requester's authentication UID.
+ * - Relational Integrity: On document creation, rules ensure that internal ID fields
+ *   (e.g., `user.id` or `session.userId`) correctly match the IDs in the document path.
+ *   These fields are then made immutable to prevent re-linking documents to different owners.
+ * - Prototyping Flexibility: While authorization and relational links are strictly
+ *   enforced, the rules do not validate the shape or data types of other document
+ *   fields (like `email`, `loginTime`, etc.), allowing for rapid iteration on the app's features.
+ *
+ * Denormalization for Authorization:
+ * No complex denormalization is required. The hierarchical path structure provides all
+ * the necessary context for authorization decisions, making `get()` calls to other
+ * documents unnecessary.
+ *
+ * Structural Segregation:
+ * Not applicable in this model, as all data is inherently private. The structure
+ * naturally segregates each user's data from all others.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the signed-in user's UID matches the provided userId.
+     * This is the primary function for checking document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    /**
+     * Returns true if the user is the owner and the document already exists.
+     * Used for safe update and delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates required relational fields for a new User document.
+     * Enforces that the document's internal `id` matches its path `userId`.
+     */
+    function hasValidUserDataOnCreate(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Enforces immutability for critical relational fields on a User document.
+     * Prevents the ownership link (`id`) from being changed after creation.
+     */
+    function isUserDataImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Validates required relational fields for a new Session document.
+     * Enforces that the internal `userId` and `id` match the document's path.
+     */
+    function hasValidSessionDataOnCreate(userId, sessionId) {
+      return request.resource.data.userId == userId && request.resource.data.id == sessionId;
+    }
+
+    /**
+     * Enforces immutability for critical relational fields on a Session document.
+     * Prevents the ownership link (`userId`) and `id` from being changed.
+     */
+    function isSessionDataImmutable() {
+      let isUserIdUnchanged = request.resource.data.userId == resource.data.userId;
+      let isSessionIdUnchanged = request.resource.data.id == resource.data.id;
+      return isUserIdUnchanged && isSessionIdUnchanged;
+    }
+
+    // ----------------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------------
+
+    /**
+     * @description Rules for a user's own profile document.
+     * @path /users/{userId}
+     * @allow (create) A newly signed-up user (auth.uid='user123') creating their own profile at `/users/user123`.
+     * @deny (get) A user (auth.uid='user456') trying to read another user's profile at `/users/user123`.
+     * @deny (list) Any user trying to list all documents in the `/users` collection.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && hasValidUserDataOnCreate(userId);
+      allow update: if isExistingOwner(userId) && isUserDataImmutable();
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for a user's session documents, which are stored in a subcollection.
+       * @path /users/{userId}/sessions/{sessionId}
+       * @allow (list) An authenticated user (auth.uid='user123') listing their own sessions under `/users/user123/sessions`.
+       * @deny (create) A user (auth.uid='user456') trying to create a session document under another user's path `/users/user123/sessions`.
+       * @principle Enforces document ownership via hierarchical path, ensuring sessions are private.
+       */
+      match /sessions/{sessionId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasValidSessionDataOnCreate(userId, sessionId);
+        allow update: if isExistingOwner(userId) && isSessionDataImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+  }
+}
