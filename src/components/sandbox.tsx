@@ -38,6 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Document, Packer, Paragraph } from 'docx';
 import { jsPDF } from 'jspdf';
 import policies from '@/lib/sandbox-policies.json';
+import { cn } from '@/lib/utils';
 
 const DEFAULT_CODE = `function greet(name) {
   console.log(\`Hello, \${name}!\`);
@@ -387,6 +388,13 @@ export function Sandbox() {
                 </Badge>
               )}
             </div>
+            {analysisResult && !analysisResult.isSafe && (
+              <Alert variant="destructive" className="mt-4">
+                <ShieldAlert className="h-4 w-4" />
+                <AlertTitle>Security Analysis</AlertTitle>
+                <AlertDescription>{analysisResult.reason}</AlertDescription>
+              </Alert>
+            )}
             {terminationReason && (
               <Alert variant="destructive" className="mt-4">
                 <ShieldAlert className="h-4 w-4" />
