@@ -120,9 +120,25 @@ export function Sandbox() {
   };
 
   const handleDownload = (format: 'PDF' | 'Word') => {
+    // In a real application, you would use a library to generate a PDF or Word document.
+    // For this simulation, we are downloading the output log as a text file with the appropriate extension.
+    const fileContent = output.join('\n');
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sandbox-output.${format === 'PDF' ? 'pdf' : 'docx'}`;
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
     toast({
       title: 'Download Started',
-      description: `Simulating download of results as a ${format} file.`,
+      description: `Your simulated ${format} file is downloading.`,
     });
   };
 
