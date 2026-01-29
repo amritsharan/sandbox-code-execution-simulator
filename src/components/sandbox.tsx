@@ -74,8 +74,6 @@ export function Sandbox() {
     if (result.isSafe) {
       setOutput((prev) => [
         ...prev,
-        `> AI analysis complete: Code appears to be safe.`,
-        `> Reason: ${result.reason}`,
         '> Starting execution...',
       ]);
       setIsRunning(true);
@@ -102,7 +100,7 @@ export function Sandbox() {
     } else {
       setOutput((prev) => [
         ...prev,
-        `> AI analysis complete: Potential threat detected. Execution halted.`,
+        `> Execution halted.`,
         `> Reason: ${result.reason}`,
       ]);
       toast({
