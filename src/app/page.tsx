@@ -15,12 +15,6 @@ export default function Home() {
       <main className="flex-1 p-4 md:p-6 lg:p-8">
         <Sandbox />
       </main>
-      <footer className="border-t p-4 text-center text-sm text-muted-foreground">
-        <p>
-          Powered by AI. This is a simulator and does not execute real code. For
-          demonstration purposes only.
-        </p>
-      </footer>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import type { AISecurityAnalysisOutput } from '@/ai/flows/ai-security-analysis';
 import {
   Cpu,
+  Download,
   LoaderCircle,
   MemoryStick,
   Play,
@@ -118,6 +119,13 @@ export function Sandbox() {
     if (userInitiated) {
       setOutput((prev) => [...prev, '> Process terminated by user.']);
     }
+  };
+
+  const handleDownload = (format: 'PDF' | 'Word') => {
+    toast({
+      title: 'Download Started',
+      description: `Simulating download of results as a ${format} file.`,
+    });
   };
 
   // Cleanup on unmount
@@ -254,6 +262,24 @@ export function Sandbox() {
               <div ref={outputEndRef} />
             </ScrollArea>
           </CardContent>
+          <CardFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleDownload('PDF')}
+              disabled={!output.length}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleDownload('Word')}
+              disabled={!output.length}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Word
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     </div>
