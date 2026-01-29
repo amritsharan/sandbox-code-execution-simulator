@@ -31,6 +31,7 @@ import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { jsPDF } from 'jspdf';
+import { Document, Packer, Paragraph } from 'docx';
 
 const DEFAULT_CODE = `function greet(name) {
   console.log(\`Hello, \${name}!\`);
@@ -145,33 +146,58 @@ export function Sandbox() {
         });
       }
     } else {
-      // For Word, we'll download a file with a .docx extension.
-      // Word processors can often open plain text, but this is a simulation.
       try {
-        const blob = new Blob([fileContent], {
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        const doc = new Document({
+          sections: [
+            {
+              children: output.map(
+                (line) =>
+                  new Paragraph({
+                    text: line,
+                    style: 'normal',
+                  })
+              ),
+            },
+          ],
+          styles: {
+            paragraphStyles: [
+              {
+                id: 'normal',
+                name: 'Normal',
+                basedOn: 'Normal',
+                next: 'Normal',
+                run: {
+                  font: 'Courier New',
+                  size: 20, // 10pt
+                },
+              },
+            ],
+          },
         });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'sandbox-output.docx';
 
-        document.body.appendChild(link);
-        link.click();
+        Packer.toBlob(doc).then((blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'sandbox-output.docx';
 
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+          document.body.appendChild(link);
+          link.click();
 
-        toast({
-          title: 'Download Started',
-          description: 'Your simulated Word file is downloading.',
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+
+          toast({
+            title: 'Download Started',
+            description: 'Your Word file is downloading.',
+          });
         });
       } catch (e) {
-        console.error('Failed to prepare download:', e);
+        console.error('Failed to generate DOCX:', e);
         toast({
           variant: 'destructive',
-          title: 'Download Failed',
-          description: 'There was an error preparing the file for download.',
+          title: 'Word Generation Failed',
+          description: 'There was an error creating the Word file.',
         });
       }
     }
