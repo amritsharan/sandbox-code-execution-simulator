@@ -1,6 +1,6 @@
 "use client";
 
-import type { AISecurityAnalysisOutput } from '@/ai/flows/ai-security-analysis';
+import type { SecurityAnalysisOutput } from '@/ai/flows/ai-security-analysis';
 import {
   Cpu,
   Download,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { runSecurityAnalysis } from '@/app/actions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +45,7 @@ export function Sandbox() {
   const [isRunning, setIsRunning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] =
-    useState<AISecurityAnalysisOutput | null>(null);
+    useState<SecurityAnalysisOutput | null>(null);
 
   const { toast } = useToast();
   const simulationInterval = useRef<NodeJS.Timeout | null>(null);
@@ -64,7 +65,7 @@ export function Sandbox() {
   const handleRun = async () => {
     setIsAnalyzing(true);
     setAnalysisResult(null);
-    setOutput(['> Running AI security analysis...']);
+    setOutput(['> Running security analysis...']);
 
     const result = await runSecurityAnalysis(code);
 
@@ -101,12 +102,11 @@ export function Sandbox() {
       setOutput((prev) => [
         ...prev,
         `> Execution halted.`,
-        `> Reason: ${result.reason}`,
       ]);
       toast({
         variant: 'destructive',
         title: 'Execution Halted',
-        description: 'AI detected a potential security threat.',
+        description: 'A potential security threat was detected.',
       });
     }
   };
@@ -159,6 +159,13 @@ export function Sandbox() {
               </Badge>
             )}
           </div>
+          {analysisResult && !analysisResult.isSafe && (
+            <Alert variant="destructive" className="mt-4">
+              <ShieldAlert className="h-4 w-4" />
+              <AlertTitle>Analysis Explanation</AlertTitle>
+              <AlertDescription>{analysisResult.reason}</AlertDescription>
+            </Alert>
+          )}
         </CardHeader>
         <CardContent>
           <div className="relative">

@@ -2,12 +2,12 @@
 
 import {
   analyzeCodeSecurity,
-  type AISecurityAnalysisOutput,
+  type SecurityAnalysisOutput,
 } from '@/ai/flows/ai-security-analysis';
 
 export async function runSecurityAnalysis(
   code: string
-): Promise<AISecurityAnalysisOutput> {
+): Promise<SecurityAnalysisOutput> {
   if (!code.trim()) {
     return {
       isSafe: true,
@@ -19,12 +19,12 @@ export async function runSecurityAnalysis(
     const result = await analyzeCodeSecurity({ code });
     return result;
   } catch (error) {
-    console.error('AI Security Analysis failed:', error);
-    // In case of an AI error, we should not run the code.
+    console.error('Security analysis failed:', error);
+    // In case of an analysis error, we should not run the code.
     return {
       isSafe: false,
       reason:
-        'Could not perform AI security analysis. Execution halted as a precaution.',
+        'Could not perform security analysis. Execution halted as a precaution.',
     };
   }
 }
